@@ -78,8 +78,8 @@ class run_machine():
 
     def create_jobs(self):
         with Redis( host=self.redis_host ) as redis_con:
-            #q = Queue(connection=redis_con)
-            q = Queue(connection=redis_con, is_async=False)
+            q = Queue(connection=redis_con)
+            #q = Queue(connection=redis_con, is_async=False)
             for new_feature in self.feature_choices:
                 if new_feature in self.features:
                     continue

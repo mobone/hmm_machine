@@ -21,9 +21,9 @@ class generate_model:
         test['date'] = pd.to_datetime(test['date'])
 
         trained_pipelines = self.get_trained_pipelines(train, features, n_subsets, n_components)
-        test, models_used, num_models_used = self.run_pipelines(trained_pipelines, test, features)
+        self.test_with_states, self.models_used, self.num_models_used = self.run_pipelines(trained_pipelines, test, features)
 
-        return test, models_used, num_models_used
+        #return test, models_used, num_models_used
         #print(trained_pipelines)
 
     def get_trained_pipelines(self, train, features, n_subsets, n_components):
@@ -91,7 +91,10 @@ class generate_model:
         return test, models_used, num_models_used
 
 def generate_model_wrapper(features, n_subsets, n_components, name):
-    test, models_used, num_models_used = generate_model(features, n_subsets, n_components, name)
+    x = generate_model(features, n_subsets, n_components, name)
+    test_with_states = x.test_with_states
+    models_used = x.models_used
+    num_models_used = x.num_models_used
 
     return test, models_used, num_models_used
 

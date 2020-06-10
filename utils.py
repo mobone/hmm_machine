@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from ta_indicators import get_ta
 from sklearn.ensemble import ExtraTreesRegressor
 import pandas as pd
-
+import os
 def plot(df, name=None, show=False):
     df.loc[df['state']==0, 'color'] = 'firebrick'
     df.loc[df['state']==1, 'color'] = 'yellowgreen'
@@ -70,10 +70,30 @@ def write_files(tickers, name, test):
         if symbol is None:
             continue
         history = yfinance.Ticker(symbol).history(period='10y', auto_adjust=False).reset_index()
-        filename = symbol+'_'+name
-        print('writing file ', filename)
+        filename = symbol+'_'+name+'.csv'
+        #print('writing file ', filename)
+        #print(test.head(1)['date'])
+        start_date = str(test.head(1)['date'].values[0])
+        history = history[history['Date']>=start_date]
         history.to_csv(filename)
 
+    test = test[['date', 'open', 'high', 'low', 'close', 'volume', 'state']]
+    test['low'] = test['state']
+    test['close'] = test['state']
+    del test['state']
+    test.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
+    test['Adj Close'] = test['Close']
+    test.to_csv('states_%s.csv' % name)
+
+def delete_files(tickers, name):
+    for symbol in tickers:
+        if symbol is None:
+            continue
+        
+        filename = symbol+'_'+name+'.csv'
+        os.remove(filename)
+
+    os.remove('states_%s.csv' % name)
 
 
 def get_results(tickers, name):
@@ -84,15 +104,20 @@ def get_results(tickers, name):
     #setup_strategy(files, name, strategy)
     
     files = {}
-    files['instrument_count'] = 3
+    files['instrument_count'] = len(tickers)
     files['instruments'] = tickers
     
     index_num = 1
     for ticker in tickers:
-        files['instrument_%s_filename' % index_num] = '%s_%s' % (ticker, name)
+        files['instrument_%s_filename' % index_num] = '%s_%s.csv' % (ticker, name)
         index_num = index_num + 1
     
-    files['states'] = 'states_%s' % name
-    files['with_none'] = False
+    files['states'] = 'states_%s.csv' % name
+    
+
+    #print('files')
+    #print(files)
     
     result = setup_strategy(files, name).T
+
+    return result

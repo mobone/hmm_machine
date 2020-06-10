@@ -22,10 +22,9 @@ import yfinance
 
 class AccuracyStrat(strategy.BacktestingStrategy):
     def __init__(self, feed, files, smaPeriod=1):
-        super(AccuracyStrat, self).__init__(feed, 20000)
+        super(AccuracyStrat, self).__init__(feed, 10000)
         self.__position = None
-        self.with_none = files['with_none']
-        self.instruments = files['instruments']
+        self.files = files
         self.states_instrument = 'states'
         
         self.__my_indicator = ma.SMA(feed[self.states_instrument].getCloseDataSeries(), smaPeriod)
@@ -49,23 +48,34 @@ class AccuracyStrat(strategy.BacktestingStrategy):
         self.__position.exitMarket()
 
     def onBars(self, bars):
-        
-        state = self.__my_indicator[-1]
+        #print('indicator')
+        try:
+            #print(list(self.__my_indicator))
+            state = self.__my_indicator[-1]
+        except:
+            return
         #print(state)
         if state is None:
             return
 
         state_count = self.files['instrument_count']
         for i in range(state_count):
-            self.usage[files['instruments'][i]] = 0
+            self.usage[self.files['instruments'][i]] = 0
         
 
+        state = int(state)
+        self.usage[list(self.usage.keys())[state]] = 1
+
+        
+        """
         if state == 0:
             self.usage[self.usage.keys[0]] = 1
         elif state == 1:
             self.usage[self.usage.keys[1]] = 1
         elif state == 2:
             self.usage[self.usage.keys[2]] = 1
+        """
+
         """
         self.usage[self.__instrument_1] = 0
         self.usage[self.__instrument_2] = 0
@@ -82,6 +92,8 @@ class AccuracyStrat(strategy.BacktestingStrategy):
         #bar = bars.getBar('QQQ')
         #print('bar', bar)
         for instrument in self.usage.keys():
+            if instrument is None:
+                continue
             bar = bars.getBar(instrument)
             close = bar.getClose()
             
@@ -124,6 +136,8 @@ class AccuracyStrat(strategy.BacktestingStrategy):
                 self.marketOrder(instrument, num_shares, onClose=True)
         """
         for instrument in self.usage.keys():
+            if instrument is None:
+                continue
             bar = bars.getBar(instrument)
             close = bar.getClose()
             
@@ -169,20 +183,20 @@ def setup_strategy(files, name):
     #feed = csvfeed.Feed("Date", "%Y-%m-%d")
 
     for key in files.keys():
-        if 'filename' in key:
+        if 'filename' in key and "None" not in files[key]:
             print('loading', files[key])
             symbol = files[key].split('_')[0]
             filename = files[key]
-            feed.addBarsFromCSV(symbol, filename)
-            print(list( feed[symbol].getAdjCloseDataSeries() ) )
+            try:
+                feed.addBarsFromCSV(symbol, filename)
+                #print(list( feed[symbol].getAdjCloseDataSeries() ) )
+                print('loaded', filename)
+            except:
+                pass
         if 'states' in key:
             filename = files['states']
             feed.addBarsFromCSV('states', filename)
 
-            
-            
-    
-    
     
     #print('got these instruments', instrument_1, instrument_2, states_instrument)
     #print(files)
@@ -220,6 +234,7 @@ def setup_strategy(files, name):
     
         
     results = {}
+    
     results['final_value'] = myStrategy.getResult()
     results['cum_returns'] = retAnalyzer.getCumulativeReturns()[-1] * 100
 

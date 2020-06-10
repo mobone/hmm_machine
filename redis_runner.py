@@ -9,7 +9,7 @@ import numpy as np
 from time import sleep
 import warnings
 from multiprocessing import Pool, cpu_count
-from utils import get_data, plot, run_feature_importances, write_files, get_results
+from utils import get_data, plot, run_feature_importances, write_files, get_results, delete_files
 
 from rq.registry import FinishedJobRegistry
 import io
@@ -110,7 +110,7 @@ class run_machine():
                                 name, )
                     job = q.enqueue(generate_model_wrapper, args = job_args, job_timeout='6h',  result_ttl=3600 )
                     #TODO: change to nan and check for isnan in redis results
-                    self.results = self.results.append( [ [str(test_features),  str(self.params), feature_hash, job.id, -np.inf, -np.inf, job.get_status()] ] )
+                    self.results = self.results.append( [ [str(test_features),  str(self.params), feature_hash, job.id, -np.inf, -np.inf, None, job.get_status()] ] )
                     job_dict = {'job_id': job.id,
                                 'generated_name': name,
                                 'test_features': test_features,
@@ -124,9 +124,10 @@ class run_machine():
                     #print(previous_result)
                     sharpe_ratio = float(previous_result['sharpe_ratio'])
                     cum_returns = float(previous_result['cum_returns'])
+                    tickers = previous_result['tickers']
                     #print('found result', job_name, sharpe_ratio, cum_returns)
-                    self.results = self.results.append( [ [str(test_features), str(self.params), feature_hash, 'previous', sharpe_ratio, cum_returns, 'previous'] ] )
-            self.results.columns = ['features', 'params', 'feature_hash', 'job_id', 'sharpe_ratio', 'cum_returns', 'job_status']
+                    self.results = self.results.append( [ [str(test_features), str(self.params), feature_hash, 'previous', sharpe_ratio, cum_returns, tickers, 'previous'] ] )
+            self.results.columns = ['features', 'params', 'feature_hash', 'job_id', 'sharpe_ratio', 'cum_returns', 'tickers', 'job_status']
             self.results = self.results.reset_index(drop=True)
 
 
@@ -163,7 +164,7 @@ class run_machine():
                             print(e)
                             continue
 
-                        self.get_backtest(test_with_states, n_components, name)
+                        backtest_results = self.get_backtest(test_with_states, self.n_components, name)
 
                         #print('running backtest', features, type(features))
 
@@ -171,15 +172,24 @@ class run_machine():
                         #backtest_results = get_backtest(test_with_states, feature_hash, features, self.params, models_used, num_models_used, name=name, show_plot=False)
                         
                         #print(self.thread_id)
-                        #print(backtest_results)
+                        print('mooo')
+                        print(backtest_results)
                         #print()
                         job_dict['backtest_status'] = 1
 
                         sharpe_ratio = float(backtest_results['sharpe_ratio'])
                         cum_returns = float(backtest_results['cum_returns'])
-
+                        tickers = str(backtest_results['tickers'].values[0])
+                        print('tickers', tickers)
                         self.results.loc[self.results['features']==str(features), 'sharpe_ratio'] = sharpe_ratio
                         self.results.loc[self.results['features']==str(features), 'cum_returns'] = cum_returns
+                        self.results.loc[self.results['features']==str(features), 'tickers'] = tickers
+                        
+                        backtest_results['features'] = str(features)
+                        backtest_results['feature_hash'] = feature_hash
+                        backtest_results['name'] = name
+                        backtest_results['n_components'] = self.n_components
+                        backtest_results['n_subsets'] = self.n_subsets
                         #self.results.loc[self.results['features']==str(features), 'job_status'] = job_status
                         
                         # TODO: fix bug here, values[0]
@@ -192,7 +202,7 @@ class run_machine():
                         if 'win_rate' in backtest_results.columns:
                             backtest_results.to_sql('results', self.conn, if_exists='append')
                         if sharpe_ratio > best_sharpe_ratio:
-                            if sharpe_ratio > 1:
+                            if sharpe_ratio > .5:
                                 plot(test_with_states, name=name, show=False)
                             best_sharpe_ratio = sharpe_ratio
                             best_features = features
@@ -230,7 +240,9 @@ class run_machine():
         if len(self.results[self.results['sharpe_ratio']>.4])==0:
             self.failed = True
 
-    def get_backtest( test_with_states, n_components, name ):
+    def get_backtest( self, test_with_states, n_components, name ):
+        
+        ticker_groups = None
         if n_components == 2:
             ticker_groups = [('QID', 'QQQ'), ('QID', 'QLD'), ('QID', 'TQQQ'), (None, 'QQQ'), (None, 'QLD'), (None, 'TQQQ'), ('QQQ', 'QLD'), ('QQQ', 'TQQQ'), ('QLD', 'TQQQ')]
         elif n_components == 3:
@@ -240,9 +252,19 @@ class run_machine():
         elif n_components == 5:
             ticker_groups = [('QID', None, 'QQQ', 'QLD', 'TQQQ')]
 
+        best_result = None
+        best_sharpe_ratio = 0
         for tickers in ticker_groups:
             write_files(tickers, name, test_with_states)
-            get_results(tickers, name)
+            results = get_results(tickers, name)
+            delete_files(tickers, name)
+            sharpe_ratio = float(results['sharpe_ratio'])
+            if sharpe_ratio>best_sharpe_ratio:
+                best_sharpe_ratio = sharpe_ratio
+                best_result = results
+                best_result['tickers'] = str(tickers)
+
+        return best_result
 
 def runner_method(params_with_features):
     params, feature_choices = params_with_features
@@ -261,7 +283,7 @@ if __name__ == '__main__':
     
     n_subsets = [3,5,10,15,20]
     # todo: test and work on n_components 3
-    n_components = [4]
+    n_components = [2,3,4]
     #lookback = [50,100,150,200]
     #with_rfc = [True, False]
     #include_covid = [True, False]

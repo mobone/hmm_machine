@@ -87,12 +87,12 @@ class generate_model:
         models_used = str(test['model_used'].unique())
         num_models_used = len(test['model_used'].unique())
         print(num_models_used)
-        states_plot = plot(test, name=name, show=True)
+        #states_plot = plot(test, name=name, show=True)
         return test, models_used, num_models_used
 
 def generate_model_wrapper(features, n_subsets, n_components, name):
     test, models_used, num_models_used = generate_model(features, n_subsets, n_components, name)
-    
+
     return test, models_used, num_models_used
 
 

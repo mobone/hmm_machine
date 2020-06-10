@@ -27,6 +27,7 @@ import traceback
 # TODO: Try using hmm state as input for rfc
 class run_machine():
     def __init__(self, params, feature_choices):
+        self.redis_host = '192.168.1.128'
         print('sleeping')
         print(params)
         self.thread_id = randint(0,30)
@@ -76,7 +77,7 @@ class run_machine():
 
 
     def create_jobs(self):
-        with Redis( host='192.168.1.127' ) as redis_con:
+        with Redis( host=self.redis_host ) as redis_con:
             #q = Queue(connection=redis_con)
             q = Queue(connection=redis_con, is_async=False)
             for new_feature in self.feature_choices:
@@ -133,7 +134,7 @@ class run_machine():
         best_sharpe_ratio = -np.inf
         while True:
             try:
-                with Redis( host='192.168.1.127' ) as redis_con:
+                with Redis( host=self.redis_host ) as redis_con:
                     #q = Queue(connection=redis_con)
                     #registry = FinishedJobRegistry(queue=q)
                     for job_dict in self.jobs:

@@ -79,14 +79,14 @@ class generate_model:
                         test.loc[today.index, 'model_used'] = train_results['name'].values[0]
                         max_score = test_score
                 except Exception as e:
-                    print('this exception', e)
+                    #print('this exception', e)
                     continue
             
-        print(test)
+        #print(test)
         test = test.dropna(subset=['state'])
         models_used = str(test['model_used'].unique())
         num_models_used = len(test['model_used'].unique())
-        print(num_models_used)
+        #print(num_models_used)
         #states_plot = plot(test, name=name, show=True)
         return test, models_used, num_models_used
 

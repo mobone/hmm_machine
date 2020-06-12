@@ -164,6 +164,8 @@ class run_machine():
                             test_with_states, models_used, num_models_used = job.result
                         except Exception as e:
                             print(e)
+                            self.jobs.remove(job_dict)
+                            self.results = self.results[self.results['feature_hash']!=feature_hash]
                             continue
 
                         backtest_results = self.get_backtest(test_with_states, self.n_components, name)
@@ -290,7 +292,7 @@ if __name__ == '__main__':
     
     feature_choices, top_starting_features = run_feature_importances(train, n_total_features=45)
     
-    n_subsets = [5,10,15,20]
+    n_subsets = [10,15,20,25]
     # todo: test and work on n_components 3
     n_components = [2,3,4]
     #lookback = [50,100,150,200]

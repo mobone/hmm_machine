@@ -91,7 +91,7 @@ class AccuracyStrat(strategy.BacktestingStrategy):
 
             if num_shares<0:
                 #self.limitOrder(instrument, close * 0.9, num_shares)
-                print('sell order', instrument, num_shares)
+                #print('sell order', instrument, num_shares)
                 self.marketOrder(instrument, num_shares, onClose=True)
 
         for instrument in self.usage.keys():
@@ -111,7 +111,7 @@ class AccuracyStrat(strategy.BacktestingStrategy):
                 #num_shares = 500
             if num_shares>0:
                 #self.limitOrder(instrument, close * 1.1, num_shares)
-                print('buy order', instrument, num_shares)
+                #print('buy order', instrument, num_shares)
                 self.marketOrder(instrument, num_shares, onClose=True)
         
 def setup_strategy(files, name):
@@ -178,7 +178,7 @@ def setup_strategy(files, name):
     results['final_value'] = myStrategy.getResult()
     results['cum_returns'] = retAnalyzer.getCumulativeReturns()[-1] * 100
     results['sharpe_ratio'] = sharpeRatioAnalyzer.getSharpeRatio(0.05)
-    if float(results['sharpe_ratio'])>1:
+    if float(results['sharpe_ratio'])>1 and float(results['cum_returns'])>500:
         plt.savePlot('./plots/%s_%s.png' % ( str(int(results['cum_returns'])), name ))
     del plt
     results['max_drawdown_%'] = drawDownAnalyzer.getMaxDrawDown() * 100

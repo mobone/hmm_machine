@@ -5,6 +5,8 @@ from ta_indicators import get_ta
 from sklearn.ensemble import ExtraTreesRegressor
 import pandas as pd
 import os
+import warnings
+warnings.simplefilter('ignore')
 def plot(df, name=None, show=False):
     df.loc[df['state']==0, 'color'] = 'firebrick'
     df.loc[df['state']==1, 'color'] = 'yellowgreen'

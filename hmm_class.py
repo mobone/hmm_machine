@@ -91,10 +91,14 @@ class generate_model:
         return test, models_used, num_models_used
 
 def generate_model_wrapper(features, n_subsets, n_components, name):
-    x = generate_model(features, n_subsets, n_components, name)
-    test_with_states = x.test_with_states
-    models_used = x.models_used
-    num_models_used = x.num_models_used
+    
+    try:
+        x = generate_model(features, n_subsets, n_components, name)
+        test_with_states = x.test_with_states
+        models_used = x.models_used
+        num_models_used = x.num_models_used
+    except Exception as e:
+        print(e)
 
     return test_with_states, models_used, num_models_used
 

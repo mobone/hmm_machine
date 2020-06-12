@@ -24,15 +24,17 @@ from hmm_class import generate_model_wrapper
 import time
 import hashlib
 import traceback
+warnings.simplefilter('ignore')
 # TODO: Try using hmm state as input for rfc
 class run_machine():
     def __init__(self, params, feature_choices):
         self.redis_host = '192.168.1.128'
-        print('sleeping')
+        self.thread_id = randint(0,60)
+        print('sleeping', self.thread_id)
         print(params)
-        self.thread_id = randint(0,30)
+        
         sleep(self.thread_id)
-        print('starting')
+        print('starting', self.thread_id)
         self.params  = params
         starting_feature, n_subsets, n_components = self.params
         self.starting_feature = starting_feature
@@ -65,7 +67,7 @@ class run_machine():
 
 
     def run(self):
-        while len(self.features)<21:
+        while len(self.features)<16:
             self.results = pd.DataFrame()
 
             self.jobs = []
@@ -99,7 +101,7 @@ class run_machine():
 
                     job_name = name+'__'+str(test_features)+'__'+feature_hash
                     
-                    print('creating job', job_name)
+                    #print('creating job', job_name)
                     # TODO: possibly use different queues for each simulation run
                     job_args = (test_features, 
                                 self.n_subsets, 
@@ -119,7 +121,7 @@ class run_machine():
                                 'backtest_status': None
                                 }
                     self.jobs.append( job_dict )
-                    print('job_created')
+                    #print('job_created')
                 else:
                     #print(previous_result)
                     sharpe_ratio = float(previous_result['sharpe_ratio'])
@@ -186,10 +188,15 @@ class run_machine():
                         self.results.loc[self.results['features']==str(features), 'tickers'] = tickers
                         
                         backtest_results['features'] = str(features)
+                        backtest_results['num_features'] = len(features)
                         backtest_results['feature_hash'] = feature_hash
                         backtest_results['name'] = name
                         backtest_results['n_components'] = self.n_components
                         backtest_results['n_subsets'] = self.n_subsets
+                        backtest_results['starting_feature'] = self.starting_feature
+                        backtest_results['models_used'] = models_used
+                        backtest_results['num_models_used'] = num_models_used
+
                         #self.results.loc[self.results['features']==str(features), 'job_status'] = job_status
                         
                         # TODO: fix bug here, values[0]
@@ -211,7 +218,7 @@ class run_machine():
                 print('EXCEPTION')
                 print(e)
                 traceback.print_exc()
-                if 'no such job' in str(e):
+                if 'No such job' in str(e):
                     self.jobs.remove(job_dict)
                     self.results = self.results[self.results['feature_hash']!=feature_hash]
                     print('removed job and result row')
@@ -227,8 +234,6 @@ class run_machine():
                 print('waiting for', num_queued, num_started)
                 print('\n','===========','\n')
                 sleep(5)
-                if num_started == 0:
-                    sleep(60)
             else:
                 break
             
@@ -237,7 +242,7 @@ class run_machine():
         self.features = eval(best_features)
 
         # sharpe ratio not good enough, just quit
-        if len(self.results[self.results['sharpe_ratio']>.4])==0:
+        if len(self.results[self.results['sharpe_ratio']>.8])==0:
             self.failed = True
 
     def get_backtest( self, test_with_states, n_components, name ):
@@ -255,8 +260,12 @@ class run_machine():
         best_result = None
         best_sharpe_ratio = 0
         for tickers in ticker_groups:
+
             write_files(tickers, name, test_with_states)
-            results = get_results(tickers, name)
+            try:
+                results = get_results(tickers, name)
+            except:
+                pass
             delete_files(tickers, name)
             sharpe_ratio = float(results['sharpe_ratio'])
             if sharpe_ratio>best_sharpe_ratio:
@@ -281,7 +290,7 @@ if __name__ == '__main__':
     
     feature_choices, top_starting_features = run_feature_importances(train, n_total_features=45)
     
-    n_subsets = [3,5,10,15,20]
+    n_subsets = [5,10,15,20]
     # todo: test and work on n_components 3
     n_components = [2,3,4]
     #lookback = [50,100,150,200]
@@ -299,7 +308,7 @@ if __name__ == '__main__':
     #params = ['mom', feature_choices, 5, 4, 200, True ]
     #run_machine( params )
 
-    #p = Pool(6)
-    #p.map(runner_method, params_with_features)
+    p = Pool(6)
+    p.map(runner_method, params_with_features)
 
-    runner_method(params_with_features[0])
+    #runner_method(params_with_features[0])

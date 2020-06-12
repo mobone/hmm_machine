@@ -19,7 +19,8 @@ from pyalgotrade import plotter
 import matplotlib
 import numpy as np
 import yfinance
-
+import warnings
+warnings.simplefilter('ignore')
 class AccuracyStrat(strategy.BacktestingStrategy):
     def __init__(self, feed, files, smaPeriod=1):
         super(AccuracyStrat, self).__init__(feed, 10000)
@@ -64,31 +65,11 @@ class AccuracyStrat(strategy.BacktestingStrategy):
         
 
         state = int(state)
-        self.usage[list(self.usage.keys())[state]] = 1
+        self.usage[list(self.usage.keys())[state]] = .9
 
+        #print(state)
+        #print(self.usage)
         
-        """
-        if state == 0:
-            self.usage[self.usage.keys[0]] = 1
-        elif state == 1:
-            self.usage[self.usage.keys[1]] = 1
-        elif state == 2:
-            self.usage[self.usage.keys[2]] = 1
-        """
-
-        """
-        self.usage[self.__instrument_1] = 0
-        self.usage[self.__instrument_2] = 0
-
-        if state == 0:
-            self.usage[self.__instrument_1] = 1
-            self.usage[self.__instrument_2] = 0
-            
-
-        elif state == 1:
-            self.usage[self.__instrument_1] = 0
-            self.usage[self.__instrument_2] = 1
-        """
         #bar = bars.getBar('QQQ')
         #print('bar', bar)
         for instrument in self.usage.keys():
@@ -110,31 +91,9 @@ class AccuracyStrat(strategy.BacktestingStrategy):
 
             if num_shares<0:
                 #self.limitOrder(instrument, close * 0.9, num_shares)
-                #print('sell order', instrument, num_shares)
+                print('sell order', instrument, num_shares)
                 self.marketOrder(instrument, num_shares, onClose=True)
 
-
-        """
-        for instrument in [self.__instrument_1, self.__instrument_2]:
-            bar = bars.getBar(instrument)
-            close = bar.getClose()
-            
-            usage = self.usage[instrument]
-
-            num_shares = floor( (self.getBroker().getEquity() * usage)  / (close*.9) )
-
-            currentPos = self.getBroker().getShares(instrument)
-
-            num_shares = int(num_shares - currentPos)
-
-            #if num_shares<-500:
-                #num_shares = -500
-
-            if num_shares<0:
-                #self.limitOrder(instrument, close * 0.9, num_shares)
-                #print('sell order', instrument, num_shares)
-                self.marketOrder(instrument, num_shares, onClose=True)
-        """
         for instrument in self.usage.keys():
             if instrument is None:
                 continue
@@ -152,28 +111,9 @@ class AccuracyStrat(strategy.BacktestingStrategy):
                 #num_shares = 500
             if num_shares>0:
                 #self.limitOrder(instrument, close * 1.1, num_shares)
-                #print('buy order', instrument, num_shares)
+                print('buy order', instrument, num_shares)
                 self.marketOrder(instrument, num_shares, onClose=True)
-        """
-        for instrument in [self.__instrument_1, self.__instrument_2]:
-            bar = bars.getBar(instrument)
-            close = bar.getClose()
-            
-            usage = self.usage[instrument]
-
-            num_shares = floor( (self.getBroker().getEquity() * usage)  / (close*1.1) )
-            
-            currentPos = self.getBroker().getShares(instrument)
-            
-            num_shares = int(num_shares - currentPos)
-            #if num_shares>500:
-                #num_shares = 500
-            if num_shares>0:
-                #self.limitOrder(instrument, close * 1.1, num_shares)
-                #print('buy order', instrument, num_shares)
-                self.marketOrder(instrument, num_shares, onClose=True)
-        """
-
+        
 def setup_strategy(files, name):
     #from pyalgotrade.feed import csvfeed, yahoofeed
 
@@ -184,13 +124,13 @@ def setup_strategy(files, name):
 
     for key in files.keys():
         if 'filename' in key and "None" not in files[key]:
-            print('loading', files[key])
+            #print('loading', files[key])
             symbol = files[key].split('_')[0]
             filename = files[key]
             try:
                 feed.addBarsFromCSV(symbol, filename)
                 #print(list( feed[symbol].getAdjCloseDataSeries() ) )
-                print('loaded', filename)
+                #print('loaded', filename)
             except:
                 pass
         if 'states' in key:
@@ -237,10 +177,10 @@ def setup_strategy(files, name):
     
     results['final_value'] = myStrategy.getResult()
     results['cum_returns'] = retAnalyzer.getCumulativeReturns()[-1] * 100
-
-    plt.savePlot('./plots/%s_%s.png' % ( str(int(results['cum_returns'])), name ))
-    del plt
     results['sharpe_ratio'] = sharpeRatioAnalyzer.getSharpeRatio(0.05)
+    if float(results['sharpe_ratio'])>1:
+        plt.savePlot('./plots/%s_%s.png' % ( str(int(results['cum_returns'])), name ))
+    del plt
     results['max_drawdown_%'] = drawDownAnalyzer.getMaxDrawDown() * 100
     results['longest_drawdown'] = str(drawDownAnalyzer.getLongestDrawDownDuration())
 

@@ -98,7 +98,7 @@ def generate_model_wrapper(features, n_subsets, n_components, name):
         models_used = x.models_used
         num_models_used = x.num_models_used
     except Exception as e:
-        print(e)
+        return None
 
     return test_with_states, models_used, num_models_used
 

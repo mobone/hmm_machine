@@ -220,10 +220,10 @@ class run_machine():
                 print('EXCEPTION')
                 print(e)
                 traceback.print_exc()
-                if 'No such job' in str(e):
-                    self.jobs.remove(job_dict)
-                    self.results = self.results[self.results['feature_hash']!=feature_hash]
-                    print('removed job and result row')
+                #if 'No such job' in str(e):
+                self.jobs.remove(job_dict)
+                self.results = self.results[self.results['feature_hash']!=feature_hash]
+                #print('removed job and result row')
                 sleep(15)
                 continue
             print()
